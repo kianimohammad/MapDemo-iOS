@@ -12,8 +12,13 @@ import MapKit
 class ViewController: UIViewController , CLLocationManagerDelegate {
     
     var locationManager = CLLocationManager()
+    
+    var destination: CLLocationCoordinate2D!
 
     @IBOutlet weak var map: MKMapView!
+    
+    // create a places array
+    let places = Place.getPlaces()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -49,9 +54,41 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
         // add double tap
         addDoubleTap()
         
+        // add annotation for the places
+//        addPlaces()
+        
+        // add polyline method
+//        addPolyline()
+        
+        // add polygon method
+//        addPolygon()
+        
     }
     
-    //MARK: - add long press gesture recognizer for the annotation
+    //MARK: - places method
+    /// add places function
+    func addPlaces() {
+        map.addAnnotations(places)
+        
+        let overlays = places.map { MKCircle(center: $0.coordinate, radius: 1000)}
+        map.addOverlays(overlays)
+    }
+    
+    //MARK: - polyline method
+    func addPolyline() {
+        let coordinates = places.map {$0.coordinate}
+        let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+        map.addOverlay(polyline)
+    }
+    
+    //MARK: - polygon method
+    func addPolygon() {
+        let coordinates = places.map {$0.coordinate}
+        let polyline = MKPolygon(coordinates: coordinates, count: coordinates.count)
+        map.addOverlay(polyline)
+    }
+    
+    //MARK: - long press gesture recognizer for the annotation
     @objc func addlongPressAnnotation(gestureRecognizer: UIGestureRecognizer) {
         let touchPoint = gestureRecognizer.location(in: map)
         let coordinate = map.convert(touchPoint, toCoordinateFrom: map)
@@ -99,6 +136,7 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
  */
     }
     
+    //MARK: - double tap func
     func addDoubleTap() {
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(dropPin))
         doubleTap.numberOfTapsRequired = 2
@@ -116,6 +154,8 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
         annotation.title = "My destination"
         annotation.coordinate = coordinate
         map.addAnnotation(annotation)
+        
+        destination = coordinate
     }
     
     func removePin() {
@@ -124,6 +164,39 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
         }
 //        map.removeAnnotations(map.annotations)
     }
+    
+    @IBAction func drawDirection(_ sender: UIButton) {
+        map.removeOverlays(map.overlays)
+        
+        let sourcePlaceMark = MKPlacemark(coordinate: locationManager.location!.coordinate)
+        let destinationPlaceMark = MKPlacemark(coordinate: destination)
+        
+        // request a direction
+        let directionRequest = MKDirections.Request()
+        
+        // define source and destination
+        directionRequest.source = MKMapItem(placemark: sourcePlaceMark)
+        directionRequest.destination = MKMapItem(placemark: destinationPlaceMark)
+        
+        // transportation type
+        directionRequest.transportType = .walking
+        
+        // calculate directions
+        let directions = MKDirections(request: directionRequest)
+        directions.calculate { (response, error) in
+            guard let directionResponse = response else {return}
+            // create route
+            let route = directionResponse.routes[0]
+            // draw the polyline
+            self.map.addOverlay(route.polyline, level: .aboveRoads)
+            
+            // defining the bounding map rect
+            let rect = route.polyline.boundingMapRect
+//            self.map.setRegion(MKCoordinateRegion(rect), animated: true)
+            self.map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100), animated: true)
+        }
+    }
+    
 }
 
 extension ViewController: MKMapViewDelegate {
@@ -152,5 +225,28 @@ extension ViewController: MKMapViewDelegate {
         let cancelAction = UIAlertAction(title: "OK", style: .cancel, handler: nil)
         alertController.addAction(cancelAction)
         present(alertController, animated: true, completion: nil)
+    }
+    
+    //MARK: - render for overlay
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+        if overlay is MKCircle {
+            let rendrer = MKCircleRenderer(overlay: overlay)
+            rendrer.fillColor = UIColor.black.withAlphaComponent(0.5)
+            rendrer.strokeColor = UIColor.green
+            rendrer.lineWidth = 2
+            return rendrer
+        } else if overlay is MKPolyline {
+            let rendrer = MKPolylineRenderer(overlay: overlay)
+            rendrer.strokeColor = UIColor.blue
+            rendrer.lineWidth = 3
+            return rendrer
+        } else if overlay is MKPolygon {
+            let rendrer = MKPolygonRenderer(overlay: overlay)
+            rendrer.fillColor = UIColor.red.withAlphaComponent(0.6)
+            rendrer.strokeColor = UIColor.purple
+            rendrer.lineWidth = 2
+            return rendrer
+        }
+        return MKOverlayRenderer()
     }
 }
