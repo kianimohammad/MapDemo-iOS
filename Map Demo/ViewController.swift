@@ -40,7 +40,7 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
         let latitude: CLLocationDegrees = 43.64
         let longitude: CLLocationDegrees = -79.38
         
-        displayLocation(latitude: latitude, longitude: longitude, title: "Toronto Downtown", subtitle: "beatiful city")
+//        displayLocation(latitude: latitude, longitude: longitude, title: "Toronto Downtown", subtitle: "beatiful city")
         
         // long press gesture
         let uilpgr = UILongPressGestureRecognizer(target: self, action: #selector(addlongPressAnnotation))
@@ -89,13 +89,14 @@ class ViewController: UIViewController , CLLocationManagerDelegate {
         
         // 4 - set region for the map
         map.setRegion(region, animated: true)
-        
+        /*
         // add annotation
         let annotation = MKPointAnnotation()
         annotation.title = title
         annotation.subtitle = subtitle
         annotation.coordinate = location
         map.addAnnotation(annotation)
+ */
     }
     
     func addDoubleTap() {
